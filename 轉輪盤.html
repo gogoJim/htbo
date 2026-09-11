@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🎡 动态轮盘 · 奖项移除</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(145deg, #1e2b3c 0%, #0f1722 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+      padding: 16px;
+    }
+
+    .game-container {
+      background: #283845;
+      padding: 24px 20px 32px;
+      border-radius: 60px 60px 40px 40px;
+      box-shadow: 0 20px 30px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.08);
+      border: 1px solid #4a5f72;
+      max-width: 760px;
+      width: 100%;
+      transition: all 0.2s;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 0 0 8px 0;
+      font-weight: 500;
+      font-size: 2.0rem;
+      letter-spacing: 4px;
+      color: #f5e7c8;
+      text-shadow: 0 4px 0 #7a5f3b, 0 6px 12px rgba(0,0,0,0.5);
+    }
+
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 12px 20px;
+      margin-bottom: 16px;
+    }
+
+    .slot-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #1f2c38;
+      padding: 4px 12px 4px 16px;
+      border-radius: 40px;
+      border: 1px solid #4a5f72;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    .slot-control label {
+      color: #b6cdde;
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+
+    .slot-control input {
+      width: 60px;
+      padding: 6px 4px;
+      border-radius: 30px;
+      border: none;
+      background: #324a5a;
+      color: #f5e7c8;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-align: center;
+      outline: 1px solid #5d7a8f;
+    }
+    .slot-control input:focus {
+      outline: 2px solid #facc15;
+    }
+
+    .reset-btn {
+      background: #4a5f72;
+      border: none;
+      padding: 6px 18px;
+      border-radius: 40px;
+      color: #f5e7c8;
+      font-weight: 600;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 0 #1f2c38;
+      cursor: pointer;
+      transition: 0.08s linear;
+      border: 1px solid #6d88a0;
+    }
+    .reset-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #1f2c38;
+    }
+
+    .wheel-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      aspect-ratio: 1/1;
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+      border-radius: 50%;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 0 8px #3d4e5e, 0 0 0 12px #1f2c38;
+      background: #2c3d4b;
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    .pointer {
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 26px solid transparent;
+      border-right: 26px solid transparent;
+      border-top: 46px solid #facc15;
+      filter: drop-shadow(0 8px 6px rgba(0,0,0,0.6));
+      z-index: 10;
+      pointer-events: none;
+    }
+    .pointer::after {
+      content: '';
+      position: absolute;
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 16px;
+      height: 16px;
+      background: radial-gradient(circle, #fde047, #b45309);
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px #1f2c38;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 14px 24px;
+      margin-top: 22px;
+    }
+
+    .spin-btn {
+      background: #facc15;
+      border: none;
+      padding: 12px 36px;
+      border-radius: 80px;
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #1e293b;
+      letter-spacing: 2px;
+      box-shadow: 0 8px 0 #a57c0e, 0 10px 20px rgba(0,0,0,0.3);
+      transition: all 0.07s ease;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid #fde68a;
+    }
+    .spin-btn:active {
+      transform: translateY(6px);
+      box-shadow: 0 2px 0 #a57c0e, 0 8px 16px rgba(0,0,0,0.3);
+    }
+    .spin-btn:disabled {
+      opacity: 0.5;
+      transform: translateY(4px);
+      box-shadow: 0 4px 0 #7a620e;
+      pointer-events: none;
+    }
+
+    .result-area {
+      background: #1f2c38;
+      padding: 6px 18px;
+      border-radius: 40px;
+      min-width: 140px;
+      text-align: center;
+      border: 1px solid #4c6377;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+    }
+    .result-text {
+      font-size: 1.4rem;
+      font-weight: 500;
+      color: #f5e7c8;
+      min-height: 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      word-break: break-word;
+    }
+    .result-text span {
+      background: #2d4050;
+      padding: 0 14px;
+      border-radius: 30px;
+      line-height: 2.2rem;
+      color: #fde047;
+    }
+
+    /* 已移除奖项展示 */
+    .removed-section {
+      margin-top: 24px;
+      background: #1a2632;
+      border-radius: 40px;
+      padding: 12px 16px 16px;
+      border: 1px solid #3f5567;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+    }
+    .removed-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #b6cdde;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+      padding: 0 6px 8px 6px;
+      border-bottom: 1px dashed #3f5567;
+    }
+    .removed-title span {
+      background: #2c4050;
+      padding: 0 14px;
+      border-radius: 30px;
+      font-size: 0.8rem;
+      color: #f5e7c8;
+    }
+    .removed-list {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 14px;
+      padding: 10px 4px 4px;
+      min-height: 44px;
+    }
+    .removed-item {
+      background: #2d4050;
+      padding: 4px 16px 4px 14px;
+      border-radius: 40px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #f5e7c8;
+      border-left: 6px solid #facc15;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .removed-item .color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .empty-removed {
+      color: #5d7a8f;
+      font-style: italic;
+      padding: 6px 0;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px 12px;
+      margin: 12px 0 4px;
+      color: #b6cdde;
+      font-size: 0.8rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .color-dot-sm {
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      border: 1px solid #2d3f4d;
+    }
+
+    @media (max-width: 480px) {
+      .game-container { padding: 14px 10px 20px; }
+      h1 { font-size: 1.6rem; }
+      .spin-btn { padding: 10px 24px; font-size: 1.4rem; }
+      .result-text { font-size: 1.2rem; min-height: 2.6rem; }
+      .slot-control input { width: 50px; }
+    }
+  </style>
+</head>
+<body>
+<div class="game-container">
+  <h1>🎡 移除轮盘</h1>
+
+  <div class="top-bar">
+    <div class="slot-control">
+      <label for="slotCount">奖项数</label>
+      <input type="number" id="slotCount" min="1" max="15" value="8">
+    </div>
+    <button class="reset-btn" id="resetBtn">⟳ 重置</button>
+  </div>
+
+  <div class="wheel-wrapper">
+    <canvas id="wheelCanvas" width="600" height="600"></canvas>
+    <div class="pointer"></div>
+  </div>
+
+  <div class="controls">
+    <button class="spin-btn" id="spinBtn">▶ 抽奖</button>
+    <div class="result-area">
+      <div class="result-text" id="resultDisplay">🎲 点击转盘</div>
+    </div>
+  </div>
+
+  <!-- 已移除奖项 -->
+  <div class="removed-section" id="removedSection">
+    <div class="removed-title">
+      <span>🏆 已移除奖项</span>
+      <span id="removedCount">0</span>
+    </div>
+    <div class="removed-list" id="removedList">
+      <div class="empty-removed">暂无移除奖项</div>
+    </div>
+  </div>
+
+  <!-- 图例 (动态) -->
+  <div class="legend" id="legendContainer"></div>
+</div>
+
+<script>
+  (function() {
+    // ----- 核心数据 -----
+    let currentSegments = [];          // { label, color, id }
+    let removedItems = [];            // 已移除的奖项 { label, color }
+    let currentRotation = 0.0;
+    let isSpinning = false;
+    let spinVelocity = 0;
+    let animFrameId = null;
+    const friction = 0.985;
+    const minSpin = 0.008;
+
+    // DOM
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const spinBtn = document.getElementById('spinBtn');
+    const resultDisplay = document.getElementById('resultDisplay');
+    const slotInput = document.getElementById('slotCount');
+    const resetBtn = document.getElementById('resetBtn');
+    const removedList = document.getElementById('removedList');
+    const removedCount = document.getElementById('removedCount');
+
+    // 辅助：生成随机颜色 (鲜艳)
+    function randomColor() {
+      const hue = Math.floor(Math.random() * 360);
+      return `hsl(${hue}, 75%, 55%)`;
+    }
+
+    // 根据数量生成奖项 (label + color)
+    function generateSegments(count) {
+      const baseLabels = ['一等奖','二等奖','三等奖','四等奖','五等奖','六等奖','七等奖','八等奖',
+                          '九等奖','十等奖','十一奖','十二奖','十三奖','十四奖','十五奖'];
+      const segs = [];
+      for (let i = 0; i < count; i++) {
+        let label = (i < baseLabels.length) ? baseLabels[i] : `奖项${i+1}`;
+        // 若count > 15 截断 (但限制15)
+        segs.push({
+          label: label,
+          color: randomColor(),
+          id: i
+        });
+      }
+      return segs;
+    }
+
+    // 打乱数组 (Fisher–Yates)
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // 重置状态 (保留移除列表可重置清空)
+    function resetGame(keepRemoved = false) {
+      if (isSpinning) return;
+
+      // 取消动画
+      if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+        animFrameId = null;
+      }
+      isSpinning = false;
+      spinBtn.disabled = false;
+      spinVelocity = 0;
+
+      let count = parseInt(slotInput.value, 10);
+      if (isNaN(count) || count < 1) count = 1;
+      if (count > 15) count = 15;
+      slotInput.value = count;
+
+      // 生成新奖项 并 打乱顺序 (不按顺序排列)
+      let newSegs = generateSegments(count);
+      // 打乱顺序，让奖项在转盘上随机分布
+      newSegs = shuffleArray(newSegs);
+      // 保留id映射
+      currentSegments = newSegs.map((s, idx) => ({ ...s, id: idx }));
+
+      if (!keepRemoved) {
+        removedItems = [];
+      } else {
+        // 如果保留移除，需过滤掉已经移除的奖项 (根据label+color) 
+        // 但重置时通常清空，此处保留选项但默认重置清空，用false
+        removedItems = [];
+      }
+
+      // 随机初始角度
+      currentRotation = Math.random() * Math.PI * 2;
+      drawWheel(currentRotation);
+      updateResult(currentRotation);
+      renderRemovedList();
+      updateLegend();
+      spinBtn.disabled = false;
+    }
+
+    // 绘制转盘
+    function drawWheel(rotation) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w/2, cy = h/2;
+      const radius = Math.min(w, h) * 0.44;
+      const segs = currentSegments;
+      const count = segs.length;
+      if (count === 0) {
+        // 没有奖项时显示空白
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#2c3d4b';
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = '#b6cdde';
+        ctx.font = '24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('无奖项', cx, cy);
+        return;
+      }
+
+      const angleStep = (Math.PI * 2) / count;
+
+      ctx.clearRect(0, 0, w, h);
+
+      for (let i = 0; i < count; i++) {
+        const start = i * angleStep + rotation;
+        const end = start + angleStep;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, start, end);
+        ctx.closePath();
+
+        ctx.fillStyle = segs[i].color;
+        ctx.fill();
+        ctx.strokeStyle = '#f0f3f8';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // 文字
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(start + angleStep / 2);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 18px "Segoe UI", "PingFang SC", system-ui, sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = 'rgba(0,0,0,0.7)';
+        ctx.shadowBlur = 10;
+        let label = segs[i].label;
+        if (label.length > 6) label = label.slice(0, 4) + '..';
+        ctx.fillText(label, radius * 0.65, 0);
+        ctx.restore();
+      }
+
+      // 中心装饰
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * 0.12, 0, Math.PI*2);
+      ctx.fillStyle = '#f5e7c8';
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 16;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#1f2c38';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+
+    // 获取指针指向的奖项 (指针朝上 -PI/2)
+    function getPrizeFromRotation(rotation) {
+      const segs = currentSegments;
+      if (segs.length === 0) return { index: -1, label: '无奖项', color: '#666' };
+      const angleStep = (Math.PI * 2) / segs.length;
+      const pointerAngle = -Math.PI / 2;
+      let raw = (pointerAngle - rotation) % (Math.PI*2);
+      if (raw < 0) raw += Math.PI*2;
+      const idx = Math.floor(raw / angleStep) % segs.length;
+      return {
+        index: idx,
+        label: segs[idx].label,
+        color: segs[idx].color,
+        id: segs[idx].id
+      };
+    }
+
+    // 更新结果显示
+    function updateResult(rotation) {
+      const prize = getPrizeFromRotation(rotation);
+      if (prize.index === -1) {
+        resultDisplay.innerHTML = `🎯 无奖项`;
+        return;
+      }
+      resultDisplay.innerHTML = `🎯 <span style="background:${prize.color}; color:white; padding:0 16px; border-radius:30px;">${prize.label}</span>`;
+    }
+
+    // 移除当前指针指向的奖项 (从currentSegments移除，加入removedItems)
+    function removeCurrentPrize(rotation) {
+      const prize = getPrizeFromRotation(rotation);
+      if (prize.index === -1 || currentSegments.length === 0) return false;
+
+      const { index, label, color, id } = prize;
+      // 从currentSegments移除
+      const removed = currentSegments.splice(index, 1)[0];
+      if (!removed) return false;
+
+      // 加入已移除列表
+      removedItems.push({ label: removed.label, color: removed.color });
+
+      // 重新绘制转盘 (不再打乱顺序，保持剩余奖项顺序)
+      drawWheel(currentRotation);
+      renderRemovedList();
+      updateLegend();
+      // 更新结果展示 指向新的当前奖项（可能变化）
+      updateResult(currentRotation);
+      return true;
+    }
+
+    // 渲染已移除列表
+    function renderRemovedList() {
+      removedList.innerHTML = '';
+      if (removedItems.length === 0) {
+        removedList.innerHTML = '<div class="empty-removed">暂无移除奖项</div>';
+        removedCount.textContent = '0';
+        return;
+      }
+      removedCount.textContent = removedItems.length;
+      removedItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'removed-item';
+        div.innerHTML = `<span class="color-dot" style="background:${item.color};"></span> ${item.label}`;
+        removedList.appendChild(div);
+      });
+    }
+
+    // 图例
+    function updateLegend() {
+      const container = document.getElementById('legendContainer');
+      container.innerHTML = '';
+      const segs = currentSegments;
+      if (segs.length === 0) {
+        container.innerHTML = '<span style="color:#5d7a8f;">无奖项</span>';
+        return;
+      }
+      segs.forEach(seg => {
+        const item = document.createElement('span');
+        item.className = 'legend-item';
+        item.innerHTML = `<span class="color-dot-sm" style="background:${seg.color};"></span> ${seg.label}`;
+        container.appendChild(item);
+      });
+    }
+
+    // 动画循环
+    function spinAnimation() {
+      if (!isSpinning) return;
+      spinVelocity *= friction;
+
+      if (Math.abs(spinVelocity) < minSpin) {
+        spinVelocity = 0;
+        isSpinning = false;
+        spinBtn.disabled = false;
+        if (animFrameId) {
+          cancelAnimationFrame(animFrameId);
+          animFrameId = null;
+        }
+        // 停止后：移除当前指向的奖项
+        if (currentSegments.length > 0) {
+          removeCurrentPrize(currentRotation);
+        } else {
+          resultDisplay.innerHTML = '🎯 已无奖项';
+        }
+        // 检查是否全部移除
+        if (currentSegments.length === 0) {
+          resultDisplay.innerHTML = '🎯 所有奖项已移除';
+        }
+        return;
+      }
+
+      currentRotation = (currentRotation + spinVelocity) % (Math.PI*2);
+      drawWheel(currentRotation);
+      updateResult(currentRotation);
+      animFrameId = requestAnimationFrame(spinAnimation);
+    }
+
+    // 开始旋转
+    function startSpin() {
+      if (isSpinning) return;
+      if (currentSegments.length === 0) {
+        resultDisplay.innerHTML = '🎯 无奖项可抽';
+        return;
+      }
+
+      const baseSpeed = 6 + Math.random() * 9;
+      spinVelocity = baseSpeed;
+      isSpinning = true;
+      spinBtn.disabled = true;
+      if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+        animFrameId = null;
+      }
+      spinAnimation();
+    }
+
+    // 重置 + 清空移除
+    function handleReset() {
+      if (isSpinning) return;
+      resetGame(false);
+    }
+
+    // 监听奖项数量变化
+    function onSlotCountChange() {
+      if (isSpinning) return;
+      let val = parseInt(slotInput.value, 10);
+      if (isNaN(val) || val < 1) val = 1;
+      if (val > 15) val = 15;
+      slotInput.value = val;
+      resetGame(false);
+    }
+
+    // 初始化 & 事件绑定
+    function init() {
+      // 初始8个奖项
+      slotInput.value = 8;
+      resetGame(false);
+
+      spinBtn.addEventListener('click', startSpin);
+      canvas.addEventListener('click', (e) => { if (!isSpinning) startSpin(); });
+      canvas.addEventListener('touchstart', (e) => { e.preventDefault(); if (!isSpinning) startSpin(); }, { passive: false });
+      document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !isSpinning && !e.repeat) {
+          e.preventDefault();
+          startSpin();
+        }
+      });
+
+      resetBtn.addEventListener('click', handleReset);
+      slotInput.addEventListener('change', onSlotCountChange);
+      slotInput.addEventListener('input', function() {
+        let v = parseInt(this.value, 10);
+        if (v > 15) this.value = 15;
+        if (v < 1) this.value = 1;
+      });
+
+      window.addEventListener('resize', () => { drawWheel(currentRotation); });
+    }
+
+    init();
+  })();
+</script>
+</body>
+</html>
